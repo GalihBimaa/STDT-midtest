@@ -1,7 +1,13 @@
+##Identitas 
+NAMA : Galih Bima Setia
+NIM  : 245410067
+Kelas : Informatika 2
+
 # STDT-midtest
 Ujian Tengah Semester Sistem Terdistribusi dan Terdesentralisasi
 1. Penjelasan teorema **CAP** dan **BASE** beserta keterkaitan dan contoh.
 2. Penjelasan hubungan **GraphQL** dengan komunikasi antar-proses + diagram.
+3. Penjelasan streaming replication di PostgreSQL yang bisa menjelaskan sinkronisasi.
 ## 1. Teorema CAP dan BASE (ringkas & contoh)
 
 ### Teorema CAP
@@ -45,7 +51,78 @@ Ujian Tengah Semester Sistem Terdistribusi dan Terdesentralisasi
 - **Orkestrasi Synchronous**: gateway memanggil banyak layanan (HTTP/gRPC) lalu menggabungkan hasilnya.
 - **Trigger Asynchronous**: untuk operasi write, gateway bisa men-publish event ke message broker (RabbitMQ/Kafka), mengurangi latensi transaksi synchronous.
 
-### Diagram
+## 3. streaming replication di PostgreSQL yang bisa menjelaskan sinkronisasi.
+# PostgreSQL Streaming Replication with Docker Compose
+
+Dokumentasi ini menjelaskan langkah-langkah membuat streaming replication PostgreSQL menggunakan Docker dan Docker Compose. Replikasi ini memungkinkan satu server bertindak sebagai **Primary** dan server lain bertindak sebagai **Replica**, di mana Replica selalu mengikuti perubahan data dari Primary secara real-time.
+
+---
+
+## Tujuan
+
+- Membangun cluster PostgreSQL dengan Primary dan Replica.  
+- Memahami alur sinkronisasi menggunakan mekanisme WAL (Write-Ahead Logging).  
+- Menguji proses replikasi secara sederhana.  
+
+---
+
+## Langkah-Langkah Pembuatan
+
+### **1. Siapkan Struktur Direktori**
+Buat folder project berisi folder konfigurasi untuk Primary, Replica, dan file `docker-compose.yml`.
+
+### **2. Konfigurasi Primary Database**
+Atur Primary agar mendukung streaming replication dengan:
+- Mengaktifkan fitur WAL,
+- Mengatur parameter replikasi,
+- Menambahkan user khusus untuk replikasi.
+
+Ini memungkinkan Primary mengirim data perubahan ke Replica.
+
+### **3. Konfigurasi Replica Database**
+Aktifkan mode hot standby agar Replica dapat:
+- Mengikuti perubahan dari Primary,
+- Menerima query read-only,
+- Melakukan sinkronisasi berbasis WAL.
+
+### **4. Buat dan Jalankan Docker Compose**
+Buat file Docker Compose yang mendefinisikan dua service:
+
+- **Primary** → sumber data utama  
+- **Replica** → mengambil base backup lalu mengikuti perubahan data secara streaming  
+
+Setelah konfigurasi selesai, jalankan seluruh service menggunakan:
+docker-compose up -d
+
+### **5. Periksa Status Replikasi**
+- Cek di Primary apakah Replica berhasil terhubung dan masuk mode *streaming*.  
+- Cek di Replica apakah berjalan dalam mode *recovery* (standby).
+
+### **6. Uji Replikasi**
+Tambahkan data baru ke Primary, kemudian cek di Replica.  
+Jika data muncul secara otomatis, replikasi berhasil berjalan.
+
+---
+
+##Penjelasan Singkat Streaming Replication
+
+Streaming replication bekerja dengan cara Primary mengirimkan **WAL (Write-Ahead Log)** kepada Replica.  
+Setiap perubahan data yang terjadi di Primary dicatat di WAL, kemudian WAL dikirim ke Replica untuk diterapkan ulang sehingga datanya selalu sinkron.
+
+**Keuntungan Streaming Replication:**
+- Data mirror hampir real-time  
+- Mendukung *read scaling* (beban baca di Replica)  
+- Dasar untuk high availability dan failover  
+
+---
+
+## Catatan Tambahan
+- Konfigurasi ini menggunakan **asynchronous replication**, sehingga Replica bisa sedikit tertinggal.  
+- Anda dapat menambahkan lebih dari satu Replica dalam satu cluster.  
+- Mendukung pengembangan ke **synchronous replication** jika konsistensi absolut diperlukan.  
+
+
+### Diagram Nomor 2
 ```mermaid
 graph LR
     Client -->|GraphQL Query| GraphQL_Gateway
