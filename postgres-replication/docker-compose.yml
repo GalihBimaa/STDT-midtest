@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  primary:
+    image: postgres:15
+    container_name: primary
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./primary:/var/lib/postgresql/data
+      - ./primary/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  replica:
+    image: postgres:15
+    container_name: replica
+    depends_on:
+      - primary
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./replica:/var/lib/postgresql/data
+      - ./replica/replica.sh:/docker-entrypoint-initdb.d/replica.sh
